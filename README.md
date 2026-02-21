@@ -1,159 +1,143 @@
-# Flic2Hass ![GitHub package.json version (subfolder of monorepo)](https://img.shields.io/github/package-json/v/asosnovsky/flic2hass)
+# Flic2Hass (Duo Edition)
 
+> Fork of [asosnovsky/flic2hass](https://github.com/asosnovsky/flic2hass) with **Flic Duo support** and IR module removed.
 
-> <a href='https://ko-fi.com/J3J8C4RB7' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
-This is a complete refactor of various previous versions of flic2hass. This version provides more features and even supports the onboard IR module!
+This is a Flic Hub SDK module that publishes all Flic buttons to Home Assistant via MQTT autodiscovery. It supports standard Flic 2 buttons **and** the Flic Duo, with separate entities for the big and small buttons.
 
 ## Features
 
-### Complete Overview of Buttons
+### Standard Flic Buttons
+* Connectivity state
+* Click action types: `click` `hold` `double_click`
+* Device automation triggers
+* Press detection: `released` `pressed`
+* Battery logging
+* Firmware & software version numbers
 
-![Alt text](images/button-eg.png)
+### Flic Duo Support
+* **Separate entities for Big Button and Small Button** — each has its own action sensor, state sensor, and automation triggers
+* **Gesture sensor** — detects `left`, `right`, `up`, `down` swipe gestures
+* Auto-detection: Duo buttons are detected automatically when a small-button event is received, or when the button name contains "Duo"
 
-* Show connectivity state
-* Show click action types: `click` `hold` `double_click`
-* Device emits automation events
-* Detect presses: `released` `pressed`
-* Battery Logging
-* Extract firmware & sofware version numbers
+### What's in Home Assistant
 
-### IR Module Support
+**Standard Flic button** creates:
+* `sensor.flic_XXXX_action` — click/double_click/hold/none
+* `sensor.flic_XXXX_state` — pressed/released
+* `sensor.flic_XXXX_battery` — battery percentage
+* `binary_sensor.flic_XXXX_connected` — connection status
+* Device automation triggers for short press, long press, double press
 
-* Record remote signals
-* Send remote signals
+**Flic Duo** creates all the above split into two physical buttons, plus gestures:
+* `sensor.flic_XXXX_big_action` — big button click/double_click/hold/none
+* `sensor.flic_XXXX_big_state` — big button pressed/released
+* `sensor.flic_XXXX_small_action` — small button click/double_click/hold/none
+* `sensor.flic_XXXX_small_state` — small button pressed/released
+* `sensor.flic_XXXX_gesture` — left/right/up/down
+* Device automation triggers for both big and small buttons
+* Shared battery, connectivity, and diagnostic sensors
 
-![Alt text](images/ir-eg.png)
+## Requirements
 
-Requirements:
-
-* A Flic Hub
+* A Flic Hub (LR or original with SDK support)
 * A functional MQTT server
 
-## Basic Steps
+## Setup
 
 **1. Connect to Flic Hub IDE:**
 
-* Follow along with the beginning of [these instructions](https://hubsdk.flic.io/static/tutorial/) to enable SDK access.
-* Go to: <https://hubsdk.flic.io/> and login, your hub should be discovered automatically.
+* Follow the [SDK tutorial](https://hubsdk.flic.io/static/tutorial/) to enable SDK access.
+* Go to https://hubsdk.flic.io/ and login. Your hub should be discovered automatically.
 
-**2. Create `MQTT` module:**
+**2. Create a module:**
 
-* One in the Web IDE, click "Create Module".
-* Give the new module a name. "`MQTT`" is a good option but anything will work.
+* In the Web IDE, click "Create Module".
+* Give the new module a name. "MQTT" is a good option.
 
 **3. Insert `lib.js`:**
 
-* Copy content from `lib.js` in this repo to lib.js in the flic IDE.
 * Right click the folder in the left pane and select "New File".
-* Name the file `lib.js` (IT MUST BE NAMED THIS).
-* Copy content from `lib.js` in this repo to lib.js in the flic IDE.
+* Name the file `lib.js` (**IT MUST BE NAMED THIS**).
+* Copy the content from `lib.js` in this repo into `lib.js` in the Flic IDE.
 
 **4. Setup `main.js`:**
 
-* Copy the following to `main.js`
+* Copy the following into `main.js`:
 
-```js
+```javascript
 require("./lib").start(
- require("buttons"),
- require("ir"),
- {
-  mqtt: {
-   host: "set-this-to-yours",
-   username: "set-this-to-yours",
-   password: "set-this-to-yours",
+  require("buttons"),
+  {
+    mqtt: {
+      host: "set-this-to-yours",
+      username: "set-this-to-yours",
+      password: "set-this-to-yours",
+    }
   }
- }
 )
 ```
 
-* Modify `host`, `username`, `password` with your details.
+* Modify `host`, `username`, `password` with your MQTT server details.
 
-   *If your MQTT server does not require authentication:*
+  *If your MQTT server does not require authentication:*
+* Delete the `username` & `password` lines.
 
-* Delete `username` & `password`:
+**5. Start the module:**
 
-1. Start the module in the IDE by clicking the green play button, and watch the Console output (it's extremely verbose right now)
-
-   *If the module didn't start correctly, try powercycling your Flic Hub and reconnect. Verify the Module saved properly and is running.*
-
-2. Once the module has started and you have verified it is working as expected, turn on the "restart after crash" checkbox to ensure the module is always running after any unexpected crash or hub power cycle.
+* Click the green play button in the IDE and watch the Console output.
+* Once verified working, enable "restart after crash" to keep it running.
 
 ## Additional Configuration
 
-The setup example contains just the bare minimum changes, if you wish to play around with the configuration or need to enable expanded logging see the following complete configuration file.
-
-```jsonc
+```javascript
 {
-   "mqtt": {
-      "host": "", // MQTT Host
-      "port": 1883, // MQTT Port
-      "client_id": "", // MQTT Identifier
-      "username": "", // MQTT Username
-      "password": "" // MQTT Password
-   },
-   "debug": false, // Enable debug logging for all modules
-   "ha": {
-      "debug": false, // Enable debug logging for just home-assistant related things
-      "topics": {
-         "homeassistant": "homeassistant", // MQTT Prefix for homeassistant auto-discover
-         "flic": "flic", // MQTT Prefix for state values
-      }
-   },
-   "flicBtns": { 
-      "disabled": false, // Do not publish button events
-      "debug": false // Enable debug logging for button related things
-   },
-   "flicIR": { 
-      "disabled": false, // Do not publish IR events
-      "debug": false, // Enable debug logging for IR related things
-      "uniqueId": "0", // Special identifier for your IR module (only change this value if you have more than 1 FlicHub or your hub somehow supports more than 1 IR modules)
-   },
+  "mqtt": {
+    "host": "",        // MQTT Host
+    "port": 1883,      // MQTT Port
+    "client_id": "",   // MQTT Identifier
+    "username": "",    // MQTT Username
+    "password": ""     // MQTT Password
+  },
+  "debug": false,      // Enable debug logging for all modules
+  "ha": {
+    "debug": false,    // Enable debug logging for HA MQTT
+    "topics": {
+      "homeassistant": "homeassistant", // MQTT prefix for HA autodiscovery
+      "flic": "flic"                    // MQTT prefix for state values
+    }
+  },
+  "flicBtns": {
+    "disabled": false, // Do not publish button events
+    "debug": false     // Enable debug logging for buttons
+  }
 }
 ```
 
-## How to record & send IR messages
+## How Duo Detection Works
 
-### Record Signal
+The module automatically detects Flic Duo buttons in two ways:
 
-1. Toggle the "Record Signal Entity" to `on`
+1. **By name** — If the button's name (set in the Flic app) contains "duo" (case insensitive), it is registered as a Duo immediately.
+2. **By event** — When a `buttonNumber: 1` (small button) event is received, the button is recognized as a Duo and re-registered with the split entities.
 
-   ![Alt text](images/ir-on.png)
+**Tip:** For instant Duo detection on startup, include "Duo" somewhere in the button name in the Flic app (e.g., "Living Room Duo").
 
-2. Point the remote at your recievet dongle and press the button you want to use
+## Changes from Upstream
 
-3. The signal should show up in the "Signal Textbox Entity" and the "Record Signal Entity" will be automatically switched off
+* **Removed IR module** — No IR entities are created in Home Assistant
+* **Added Flic Duo support** — Separate big/small button entities, gesture sensor
+* **Simplified `main.js`** — No need to `require("ir")` anymore
+* **Updated TypeScript types** — Matches current Flic Hub SDK with `buttonNumber`, `orientation`, `gesture`
 
-   ![Alt text](images/ir-recorded.png)
+## Building from Source
 
-4. Copy the content of the "Signal Textbox Entity" to use during replaying of the signal
+```bash
+npm install
+npm run build
+```
 
-*Tip*: if nothing gets recorded, please check the logs in the flichubsdk
+This compiles the TypeScript in `src/` and bundles it into `lib.js`.
 
-### Play Signal
+## License
 
-1. Copy the signal you want to play into the "Signal Textbox Entity"
-
-   ![Alt text](images/ir-recorded.png)
-
-2. Press the "Play Signal" button
-
-*Tip*: if nothing happens when you play, check that the signal you copied is correctly showing in the logs in the flichubsdk
-
-### FAQ
-
-* Why is the battery always 100%?
-
-   I found that with some of my buttons as well the battery is reported to always be 100%, this seems to me like an issue with either the hub itself or the buttons. Will need to open a ticket to have Flic Inc to explain to us why.
-
-* Will you support the Twist?
-
-   I don't have a twist to test yet, though it seems that the [SDK does not support](https://community.flic.io/topic/18319/update-sdk-to-use-the-flictwist/15?_=1698935936114&lang=en-US) this yet, so I won't be able to support it either. I will contemplate buying one once the support is there!
-
-* Can you add support for audio?
-
-   It seems that the SDK does not have support to control the onboard audio. I did post this on the [community board so +1](https://community.flic.io/topic/18350/add-support-for-playing-sounds) and maybe it will get there!
-
-* Can you add support for LED control?
-
-   This is also not yet [supported by SDK](https://community.flic.io/topic/18197/flic-button-led-control/3)
+GPL-3.0 (same as upstream)
