@@ -1,5 +1,11 @@
 
 
+export type Orientation = {
+    x: number;
+    y: number;
+    z: number;
+}
+
 export type Button = {
     bdaddr: string // Device address of button
     serialNumber: string // Serial number
@@ -16,6 +22,31 @@ export type Button = {
     key: number | null // A 40 characters long hex string (only for Flic 2)
 }
 
+export type ButtonEventBase = {
+    bdaddr: string;
+    buttonNumber: number; // 0 = big button (or only button), 1 = small button (Flic Duo)
+    orientation?: Orientation; // only for Flic Duo
+}
+
+export type ButtonClickOrHoldEvent = ButtonEventBase & {
+    isClick: boolean;
+    isHold: boolean;
+    gesture?: string | null; // "left", "right", "up", "down", "unrecognized", or null
+}
+
+export type ButtonSingleOrDoubleClickEvent = ButtonEventBase & {
+    isSingleClick: boolean;
+    isDoubleClick: boolean;
+    gesture?: string | null;
+}
+
+export type ButtonSingleOrDoubleClickOrHoldEvent = ButtonEventBase & {
+    isSingleClick: boolean;
+    isDoubleClick: boolean;
+    isHold: boolean;
+    gesture?: string | null;
+}
+
 export interface ButtonModule {
     getButtons(): Button[],
     getButton(bdaddr: string): Button,
@@ -25,16 +56,9 @@ export interface ButtonModule {
     on(ev: "buttonConnected", cb: (btn: Button) => void): void,
     on(ev: "buttonReady", cb: (obj: { bdaddr: string }) => void): void,
     on(ev: "buttonDisconnected", cb: (obj: { bdaddr: string }) => void): void,
-    on(ev: "buttonDown", cb: (obj: { bdaddr: string }) => void): void,
-    on(ev: "buttonUp", cb: (obj: { bdaddr: string }) => void): void,
-    on(ev: "buttonClickOrHold", cb: (obj: { bdaddr: string, isClick: boolean, isHold: boolean }) => void): void,
-    on(ev: "buttonSingleOrDoubleClick", cb: (obj: { bdaddr: string, isSingleClick: boolean, isDoubleClick: boolean }) => void): void,
-    on(ev: "buttonSingleOrDoubleClickOrHold", cb: (obj: { bdaddr: string, isSingleClick: boolean, isDoubleClick: boolean, isHold: boolean }) => void): void,
-}
-
-export interface IRModule {
-    record(): void;
-    cancelRecord(): void;
-    play(arr: Uint32Array, cb: (err: any | undefined) => void): void;
-    on(ev: 'recordComplete', cb: (d: Uint32Array) => void): void;
+    on(ev: "buttonDown", cb: (obj: ButtonEventBase) => void): void,
+    on(ev: "buttonUp", cb: (obj: ButtonEventBase & { gesture?: string | null }) => void): void,
+    on(ev: "buttonClickOrHold", cb: (obj: ButtonClickOrHoldEvent) => void): void,
+    on(ev: "buttonSingleOrDoubleClick", cb: (obj: ButtonSingleOrDoubleClickEvent) => void): void,
+    on(ev: "buttonSingleOrDoubleClickOrHold", cb: (obj: ButtonSingleOrDoubleClickOrHoldEvent) => void): void,
 }
