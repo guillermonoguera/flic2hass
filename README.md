@@ -19,16 +19,20 @@ This is a Flic Hub SDK module that publishes all Flic buttons to Home Assistant 
 * **Gesture sensor** — detects `left`, `right`, `up`, `down` swipe gestures
 * Auto-detection: Duo buttons are detected automatically when a small-button event is received, or when the button name contains "Duo"
 
-### What's in Home Assistant
+### Standard Flic Button in Home Assistant
 
-**Standard Flic button** creates:
+[![Standard Flic button in Home Assistant](/images/flic-eg.png)](/images/flic-eg.png)
+
 * `sensor.flic_XXXX_action` — click/double_click/hold/none
 * `sensor.flic_XXXX_state` — pressed/released
 * `sensor.flic_XXXX_battery` — battery percentage
 * `binary_sensor.flic_XXXX_connected` — connection status
 * Device automation triggers for short press, long press, double press
 
-**Flic Duo** creates all the above split into two physical buttons, plus gestures:
+### Flic Duo in Home Assistant
+
+[![Flic Duo in Home Assistant](/images/duo-eg.png)](/images/duo-eg.png)
+
 * `sensor.flic_XXXX_big_action` — big button click/double_click/hold/none
 * `sensor.flic_XXXX_big_state` — big button pressed/released
 * `sensor.flic_XXXX_small_action` — small button click/double_click/hold/none
