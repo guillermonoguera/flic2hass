@@ -87,7 +87,7 @@ function makeHAmqtt(mqttServer, options) {
 
     var deregisterEntity = function(component, nodeId, objectId) {
         var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
-        mqttServer.publish(configtopic, null, { retain: false });
+        mqttServer.publish(configtopic, "", { retain: true });
         logger.debug(configtopic, null);
     };
 
@@ -109,10 +109,7 @@ var SHARED_ENTITIES = {
     "battery": ['sensor', { expire_after: 5, unit_of_measurement: '%', device_class: 'battery' }],
     "batteryLastUpdate": ['sensor', { entity_category: "diagnostic", expire_after: 5, name: "Battery Last Update Time", device_class: "duration", unit_of_measurement: "s" }],
     "lifeline": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, name: "Flichub Connected", device_class: "connectivity", unit_of_measurement: "s", payload_not_available: "OFF" }],
-    "connected": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, device_class: 'connectivity', name: "Connection Established", payload_not_available: "OFF" }],
-    "ready": ['binary_sensor', { entity_category: "config", expire_after: 5, device_class: 'connectivity', name: "Connection Verified" }],
-    "activeDisconnect": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "User Active Disconnect" }],
-    "passive": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "Passive Mode" }]
+    "connected": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, device_class: 'connectivity', name: "Connection Established", payload_not_available: "OFF" }]
 };
 
 function makePerButtonEntities(label, subtype) {
@@ -249,7 +246,7 @@ function makeButtonController(ha, buttonModule, options) {
             if (objectId === 'lifeline') {
                 avl = {};
             }
-            if (objectId === 'ready' || objectId === 'connected') {
+            if (objectId === 'connected') {
                 avl.availability = [avl.availability[1]];
             }
             if (entities[objectId][0] === 'device_automation') {
@@ -325,9 +322,8 @@ function makeButtonController(ha, buttonModule, options) {
         ha.publishState(genButtonUniqueId(button.bdaddr), 'batteryLastUpdate',
             button.batteryTimestamp ? ('' + Math.round((Date.now() - button.batteryTimestamp) / 1000)) : 'unknown');
         ha.publishState(genButtonUniqueId(button.bdaddr), 'connected', button.connected ? 'ON' : "OFF");
+        // 'ready' has no entity of its own; it is the availability topic for the other entities
         ha.publishState(genButtonUniqueId(button.bdaddr), 'ready', button.ready ? 'ON' : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), 'activeDisconnect', button.activeDisconnect ? 'ON' : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), 'passive', button.activeDisconnect ? 'ON' : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), 'lifeline', 'ON');
     };
 
@@ -405,6 +401,14 @@ function makeButtonController(ha, buttonModule, options) {
         });
         logger.info("Registering all buttons...");
         var allButtons = buttonModule.getButtons();
+        // Clear retained discovery configs left behind by earlier versions for the
+        // three binary sensors Home Assistant rejects (entity_category "config").
+        var legacyEntities = ['ready', 'activeDisconnect', 'passive'];
+        for (var i = 0; i < allButtons.length; i++) {
+            for (var j = 0; j < legacyEntities.length; j++) {
+                ha.deregisterEntity('binary_sensor', genButtonUniqueId(allButtons[i].bdaddr), legacyEntities[j]);
+            }
+        }
         for (var i = 0; i < allButtons.length; i++) {
             registerButton(allButtons[i]);
         }
