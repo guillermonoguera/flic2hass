@@ -132,7 +132,8 @@ The module automatically detects Flic Duo buttons in two ways:
 * **Added Flic Duo support** — Separate big/small button entities, gesture sensor
 * **Simplified `main.js`** — No need to `require("ir")` anymore
 * **Updated TypeScript types** — Matches current Flic Hub SDK with `buttonNumber`, `orientation`, `gesture`
-* **Removed three binary sensors** (Connection Verified, User Active Disconnect, Passive Mode): Home Assistant rejects binary sensors with `entity_category: config` since 2023.11, so they never loaded and only produced "Error adding entity" log entries. Connection Established remains, and `ready` is still published as the availability topic for the other entities. Passive Mode had no SDK field behind it.
+* **Removed three binary sensors** (Connection Verified, User Active Disconnect, Passive Mode): current Home Assistant releases reject binary sensors with `entity_category: config`, so these failed to load and logged an "Error adding entity" message every time a button reconnected. Connection Established remains, and `ready` is still published as the availability topic for the other entities. Passive Mode had no SDK field behind it.
+* **Duo cleanup**: when a button is recognized as a Duo, the standard Click Action and State sensors and `button_1` triggers left over from its first registration as a standard button are removed.
 
 ## Building from Source
 
