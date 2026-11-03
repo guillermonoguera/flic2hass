@@ -25,9 +25,6 @@ const SHARED_ENTITIES: Record<string, [HAComponent, Record<string, any>]> = {
     "batteryLastUpdate": ['sensor', { entity_category: "diagnostic", expire_after: 5, name: "Battery Last Update Time", device_class: "duration", unit_of_measurement: "s" }],
     "lifeline": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, name: "Flichub Connected", device_class: "connectivity", unit_of_measurement: "s", payload_not_available: "OFF" }],
     "connected": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, device_class: 'connectivity', name: "Connection Established", payload_not_available: "OFF" }],
-    "ready": ['binary_sensor', { entity_category: "config", expire_after: 5, device_class: 'connectivity', name: "Connection Verified" }],
-    "activeDisconnect": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "User Active Disconnect" }],
-    "passive": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "Passive Mode" }],
 }
 
 // Per-button entities (for standard Flic: one set; for Duo: one set per physical button)
@@ -146,7 +143,7 @@ export function makeButtonController(
             if (objectId === 'lifeline') {
                 avl = {}
             }
-            if (objectId === 'ready' || objectId == 'connected') {
+            if (objectId === 'connected') {
                 avl.availability = [avl.availability[1]]
             }
             if (entities[objectId][0] === 'device_automation') {
@@ -214,9 +211,8 @@ export function makeButtonController(
         ha.publishState(genButtonUniqueId(button.bdaddr), 'battery', button.batteryStatus);
         ha.publishState(genButtonUniqueId(button.bdaddr), 'batteryLastUpdate', button.batteryTimestamp ? `${Math.round((Date.now() - button.batteryTimestamp) / 1000)}` : 'unknown');
         ha.publishState(genButtonUniqueId(button.bdaddr), 'connected', button.connected ? 'ON' : "OFF");
+        // 'ready' has no entity of its own; it is the availability topic for the other entities
         ha.publishState(genButtonUniqueId(button.bdaddr), 'ready', button.ready ? 'ON' : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), 'activeDisconnect', button.activeDisconnect ? 'ON' : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), 'passive', button.activeDisconnect ? 'ON' : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), 'lifeline', 'ON');
     }
 
@@ -292,6 +288,13 @@ export function makeButtonController(
             }, 500);
         });
         logger.info("Registering all buttons...")
+        // Clear retained discovery configs left behind by earlier versions for the
+        // three binary sensors Home Assistant rejects (entity_category "config").
+        ['ready', 'activeDisconnect', 'passive'].forEach(objectId => {
+            buttonModule.getButtons().forEach(button => {
+                ha.deregisterEntity('binary_sensor', genButtonUniqueId(button.bdaddr), objectId);
+            });
+        });
         buttonModule.getButtons().forEach(registerButton);
         setInterval(() => buttonModule.getButtons().forEach(publishButtonMeta), 3000);
         logger.info('is up')
