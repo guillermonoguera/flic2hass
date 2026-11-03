@@ -168,6 +168,7 @@ function makeButtonController(ha, buttonModule, options) {
             if (button) {
                 logger.info('Detected Duo button, re-registering:', button.name, bdaddr);
                 registerButton(button);
+                clearStandardEntities(button);
             }
         }
     };
@@ -188,6 +189,16 @@ function makeButtonController(ha, buttonModule, options) {
 
     var genButtonUniqueId = function(bdaddr) {
         return bdaddr.replace(/:/g, '_');
+    };
+
+    // A Duo first registered as a standard button keeps that registration's Click Action,
+    // State and button_1 triggers; clear them once the button is known to be a Duo.
+    var clearStandardEntities = function(button) {
+        var standard = makePerButtonEntities('', 'button_1');
+        var objectIds = Object.keys(standard);
+        for (var k = 0; k < objectIds.length; k++) {
+            ha.deregisterEntity(standard[objectIds[k]][0], genButtonUniqueId(button.bdaddr), objectIds[k]);
+        }
     };
 
     var getAllEntities = function(button) {
@@ -411,6 +422,9 @@ function makeButtonController(ha, buttonModule, options) {
         }
         for (var i = 0; i < allButtons.length; i++) {
             registerButton(allButtons[i]);
+        }
+        for (var i = 0; i < allButtons.length; i++) {
+            if (isDuo(allButtons[i])) clearStandardEntities(allButtons[i]);
         }
         setInterval(function() {
             var allBtns = buttonModule.getButtons();
